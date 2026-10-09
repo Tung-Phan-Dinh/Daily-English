@@ -16,7 +16,8 @@
     "content:wordlists": "node --env-file=.env.local scripts/import-wordlists.ts",
     "content:dictionary": "node --env-file=.env.local scripts/build-dictionary.ts",
     "content:topic-vocab": "node --env-file=.env.local scripts/generate-topic-vocab.ts",
-    "content:items": "node --env-file=.env.local scripts/generate-items.ts"
+    "content:items": "node --env-file=.env.local scripts/generate-items.ts",
+    "content:copy": "node scripts/copy-content.ts --from .env.local --to .env.production.local"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
