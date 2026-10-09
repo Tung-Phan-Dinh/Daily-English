@@ -1,26 +1,344 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Theme follows the system unless <html data-theme="light|dark"> is set. */
+@custom-variant dark {
+  &:where([data-theme="dark"], [data-theme="dark"] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-theme="light"]), :root:not([data-theme="light"]) *) {
+      @slot;
+    }
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/*
+ * Visual language: soft lavender-grey canvas, white 24px cards, black pill CTAs,
+ * periwinkle hero surfaces, playful category accents (orange, pink, lime, lavender).
+ * Every text/background pair below was checked for WCAG AA (≥4.5:1).
+ */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-ui);
+  --font-heading: var(--font-ui);
+  --font-serif: var(--font-reading);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Brand: periwinkle. `brand` is the text/icon/progress shade; `periwinkle` is the hero surface. */
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-periwinkle: var(--periwinkle);
+  --color-on-accent: var(--on-accent);
+
+  /* Category accents (always with on-accent text) */
+  --color-orange: var(--orange);
+  --color-pink: var(--pink);
+  --color-lime: var(--lime);
+  --color-lavender: var(--lavender);
+
+  /* Semantic: green = correct, coral = error (never pure red), orange = streak/XP, slate = neutral */
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-error: var(--error);
+  --color-error-soft: var(--error-soft);
+  --color-streak: var(--streak);
+  --color-streak-soft: var(--streak-soft);
+  --color-slate: var(--slate);
+  --color-slate-soft: var(--slate-soft);
+  --color-highlight: var(--highlight);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-3xl: 32px;
+
+  --shadow-soft: 0 1px 2px rgb(20 22 28 / 0.04), 0 8px 24px -12px rgb(20 22 28 / 0.12);
+  --shadow-float: 0 12px 32px -12px rgb(20 22 28 / 0.35);
+
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --animate-shake: shake 150ms var(--ease-out-soft);
+  --animate-pop: pop 220ms var(--ease-out-soft);
+  --animate-slide-up: slide-up 220ms var(--ease-out-soft);
+}
+
+/* ---------- Light ---------- */
+:root {
+  --radius: 16px;
+  --background: #f3f4f9;
+  --foreground: #14161c;
+  --card: #ffffff;
+  --card-foreground: var(--foreground);
+  --popover: #ffffff;
+  --popover-foreground: var(--foreground);
+  --primary: #14161c; /* black pill */
+  --primary-foreground: #ffffff;
+  --secondary: #ffffff;
+  --secondary-foreground: var(--foreground);
+  --muted: #eceef5;
+  --muted-foreground: #555b6b;
+  --accent: #eceef5;
+  --accent-foreground: var(--foreground);
+  --destructive: #b83a26;
+  --border: #e3e6ef;
+  --input: #d3d8e5;
+  --ring: #4553cf;
+
+  --brand: #4553cf;
+  --brand-soft: #e7ebff;
+  --periwinkle: #a9bbff;
+  --on-accent: #14161c;
+  --orange: #f6a057;
+  --pink: #eda7ee;
+  --lime: #c8e87a;
+  --lavender: #cdbdff;
+
+  --success: #16713f;
+  --success-soft: #ddf4e6;
+  --error: #b83a26;
+  --error-soft: #fde6e0;
+  --streak: #a04a08;
+  --streak-soft: #ffe7cf;
+  --slate: #555b6b;
+  --slate-soft: #eceef5;
+  --highlight: #fff0b8;
+
+  /* Validated categorical order (dataviz validator: all checks pass on light surface) */
+  --chart-1: #4f63e0;
+  --chart-2: #eb6834;
+  --chart-3: #d6409f;
+  --chart-4: #5f9a00;
+  --chart-5: #8b5cf6;
+}
+
+/* ---------- Dark ---------- */
+:root[data-theme="dark"] {
+  --background: #0f1117;
+  --foreground: #f2f3f7;
+  --card: #181b24;
+  --popover: #1e222d;
+  --primary: #f2f3f7; /* white pill on dark */
+  --primary-foreground: #0f1117;
+  --secondary: #222632;
+  --muted: #222632;
+  --muted-foreground: #a3a8b8;
+  --accent: #262a37;
+  --destructive: #ff8a73;
+  --border: #2a2f3c;
+  --input: #3a4050;
+  --ring: #9aaaff;
+  --brand: #9aaaff;
+  --brand-soft: #262c4a;
+  --periwinkle: #8fa3ff;
+  --on-accent: #0f1117;
+  --orange: #e8954f;
+  --pink: #d99be0;
+  --lime: #b4d96a;
+  --lavender: #b9a8f5;
+  --success: #5fd394;
+  --success-soft: #173826;
+  --error: #ff8a73;
+  --error-soft: #3e1f1a;
+  --streak: #ffb067;
+  --streak-soft: #3d2a15;
+  --slate: #a3a8b8;
+  --slate-soft: #222632;
+  --highlight: #4a4220;
+  --chart-1: #6676f0;
+  --chart-2: #e2672a;
+  --chart-3: #d24ea8;
+  --chart-4: #6aa81e;
+  --chart-5: #9475ea;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --background: #0f1117;
+    --foreground: #f2f3f7;
+    --card: #181b24;
+    --popover: #1e222d;
+    --primary: #f2f3f7;
+    --primary-foreground: #0f1117;
+    --secondary: #222632;
+    --muted: #222632;
+    --muted-foreground: #a3a8b8;
+    --accent: #262a37;
+    --destructive: #ff8a73;
+    --border: #2a2f3c;
+    --input: #3a4050;
+    --ring: #9aaaff;
+    --brand: #9aaaff;
+    --brand-soft: #262c4a;
+    --periwinkle: #8fa3ff;
+    --on-accent: #0f1117;
+    --orange: #e8954f;
+    --pink: #d99be0;
+    --lime: #b4d96a;
+    --lavender: #b9a8f5;
+    --success: #5fd394;
+    --success-soft: #173826;
+    --error: #ff8a73;
+    --error-soft: #3e1f1a;
+    --streak: #ffb067;
+    --streak-soft: #3d2a15;
+    --slate: #a3a8b8;
+    --slate-soft: #222632;
+    --highlight: #4a4220;
+    --chart-1: #6676f0;
+    --chart-2: #e2672a;
+    --chart-3: #d24ea8;
+    --chart-4: #6aa81e;
+    --chart-5: #9475ea;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    /* Text-size setting (100–130%) scales everything set in rem. */
+    font-size: calc(100% * var(--text-scale, 1));
+    -webkit-text-size-adjust: 100%;
+    @apply font-sans;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-size: 1rem;
+    line-height: 1.55;
+  }
+  :focus-visible {
+    outline: 3px solid var(--ring);
+    outline-offset: 2px;
+  }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+  ::selection {
+    background: var(--highlight);
+    color: var(--foreground);
+  }
+}
+
+@layer components {
+  /* Cards: white, 24px corners, soft shadow (light) / hairline border (dark) */
+  .surface {
+    background: var(--card);
+    border-radius: var(--radius-2xl);
+    box-shadow: var(--shadow-soft);
+  }
+  :root[data-theme="dark"] .surface {
+    box-shadow: none;
+    border: 1px solid var(--border);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .surface {
+      box-shadow: none;
+      border: 1px solid var(--border);
+    }
+  }
+  /* Periwinkle hero card with a soft line pattern */
+  .hero-card {
+    background-color: var(--periwinkle);
+    background-image:
+      radial-gradient(circle at 88% 12%, rgb(255 255 255 / 0.35) 0 60px, transparent 61px),
+      radial-gradient(circle at 100% 100%, rgb(255 255 255 / 0.18) 0 120px, transparent 121px);
+    color: var(--on-accent);
+    border-radius: var(--radius-3xl);
+  }
+
+  /* Reading font: serif with Vietnamese subset, 18px, 1.7, ≤65ch */
+  .prose-reading {
+    font-family: var(--font-reading), Georgia, serif;
+    font-size: 1.125rem;
+    line-height: 1.7;
+    max-width: 65ch;
+  }
+  .tappable-word {
+    border-radius: 3px;
+    cursor: pointer;
+  }
+  .tappable-word:hover {
+    background: var(--highlight);
+  }
+  .evidence {
+    background: var(--highlight);
+    box-shadow: 0 0 0 2px var(--highlight);
+    border-radius: 2px;
+  }
+  .paraphrase {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
+    text-decoration-color: var(--brand);
+  }
+  /* Writing severity marks: colour + line style, so colour is never the only cue */
+  .mark-blocks_meaning {
+    background: var(--error-soft);
+    text-decoration: underline wavy var(--error);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 4px;
+  }
+  .mark-noticeable {
+    background: var(--streak-soft);
+    text-decoration: underline solid var(--streak);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 4px;
+  }
+  .mark-minor {
+    text-decoration: underline dotted var(--slate);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 4px;
+  }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+@keyframes pop {
+  0% { transform: scale(0.6); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes slide-up {
+  0% { transform: translateY(12px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
