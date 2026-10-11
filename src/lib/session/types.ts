@@ -58,6 +58,7 @@ export type SessionRow = {
   plan: Plan;
   progress: Progress;
   minutes: number;
+  active_ms?: number;
   short_day: boolean;
   skipped_blocks: string[];
   streak_ok: boolean;

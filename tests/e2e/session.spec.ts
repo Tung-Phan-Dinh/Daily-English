@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { answerCurrent, cleanupUsers, ensureUser, resetLearner, signIn } from "./helpers";
+import { admin, answerCurrent, cleanupUsers, ensureUser, learnerDayKind, resetLearner, signIn } from "./helpers";
 
 const EMAIL = "e2e-learner@example.test";
 
@@ -19,6 +19,7 @@ test("a full session runs end to end, resumes after reload, and can't be repeate
   await expect(page).toHaveURL(/\/session/);
   // The URL changes before the player renders; wait for the session progress bar.
   await expect(page.getByRole("list", { name: "Session progress" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("timer")).toBeVisible(); // countdown clock
 
   const main = page.locator("main");
   const continueBtn = main.getByRole("button", { name: /^(Continue|Start 10 questions|Next word|Quick check|Got it)/ });
@@ -75,7 +76,7 @@ test("a full session runs end to end, resumes after reload, and can't be repeate
       continue;
     }
     const pos = await main.getByText(/^\d+ \/ \d+$/).first().textContent({ timeout: 1500 }).catch(() => null);
-    if (!reloaded && pos?.startsWith("3 /") && (await page.getByText("Grammar focus").count())) {
+    if (!reloaded && pos?.startsWith("3 /")) {
       await page.reload();
       await expect(main.getByText(/^3 \/ \d+$/)).toBeVisible(); // resumed exactly where he stopped
       reloaded = true;
@@ -97,7 +98,13 @@ test("a full session runs end to end, resumes after reload, and can't be repeate
   await expect(page.getByRole("heading", { name: /Nice work/ })).toBeVisible();
   await page.getByRole("button", { name: "Done" }).click();
   await expect(page.getByRole("heading", { name: /Done for today/ })).toBeVisible();
-  expect(reloaded).toBe(true);
+  // Saturdays have no numbered block for a new learner (empty review + essay), so no mid-block reload.
+  if (learnerDayKind() !== "saturday") expect(reloaded).toBe(true);
+
+  // Active time reached the server (heartbeat every 20 s + flush on leave).
+  const { data: learnerRow } = await admin.from("profiles").select("id").eq("display_name", "Tester").limit(1).single();
+  const { data: sess } = await admin.from("sessions").select("active_ms, minutes").eq("user_id", learnerRow!.id).single();
+  expect(Number(sess!.active_ms)).toBeGreaterThan(3_000); // an automated run is fast; it just has to be recorded
 
   // A second session is impossible: new tab, refresh, or direct API call.
   const res = await page.request.post("/api/session/start", { data: {} });
@@ -107,18 +114,22 @@ test("a full session runs end to end, resumes after reload, and can't be repeate
   await expect(page2).toHaveURL(/\/today/);
 });
 
-test("grammar block is fully operable by keyboard", async ({ page }) => {
+test("grammar / weekly-check items are fully operable by keyboard", async ({ page }) => {
   const id = await ensureUser(EMAIL, "learner", "Tester");
   await resetLearner(id);
   await signIn(page, EMAIL);
   await page.goto("/session");
   await expect(page.getByRole("list", { name: "Session progress" })).toBeVisible({ timeout: 30_000 });
   const main = page.locator("main");
-  await expect(main.getByRole("button", { name: /Continue|Start 10 questions/ }).first()).toBeVisible();
-  // Empty review → Continue (focused), rule card → Start (focused)
-  if (await main.getByRole("button", { name: "Continue" }).count()) await page.keyboard.press("Enter");
-  await expect(main.getByRole("button", { name: /Start 10 questions/ })).toBeFocused();
-  await page.keyboard.press("Enter");
+  const kind = learnerDayKind();
+  test.skip(kind === "saturday", "Saturday sessions have no grammar block for a new learner");
+  if (kind === "weekday") {
+    // Empty review → Continue (focused), rule card → Start (focused)
+    await expect(main.getByRole("button", { name: /Continue|Start 10 questions/ }).first()).toBeVisible();
+    if (await main.getByRole("button", { name: "Continue" }).count()) await page.keyboard.press("Enter");
+    await expect(main.getByRole("button", { name: /Start 10 questions/ })).toBeFocused();
+    await page.keyboard.press("Enter");
+  }
   for (let i = 0; i < 3; i++) {
     const hasInput = await main.locator("input[id^=ans-]").count();
     if (hasInput) {

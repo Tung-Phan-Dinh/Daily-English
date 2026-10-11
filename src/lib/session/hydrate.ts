@@ -120,6 +120,7 @@ export async function hydrateSession(db: DB, s: SessionRow) {
       topic: plan.topic,
       due_total: plan.review.due_total,
       new_words_skipped_reason: plan.new_words_skipped_reason ?? null,
+      active_ms: Number(s.active_ms ?? 0),
     },
     review,
     grammar,

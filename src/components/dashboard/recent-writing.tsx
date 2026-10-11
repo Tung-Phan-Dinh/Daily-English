@@ -15,7 +15,11 @@ type Item = {
   word_count: number;
   feedback: unknown;
   hidden_from_viewers: boolean;
+  teacher_bands?: unknown;
+  teacher_comment?: string | null;
 };
+
+type Bands = { gra: number | null; lr: number | null; tr?: number | null; cc?: number | null };
 
 /** Last 5 graded paragraphs with highlighted corrections, read-only. */
 export function RecentWriting({ items, lang, canHide }: { items: Item[]; lang: Lang; canHide: boolean }) {
@@ -34,6 +38,7 @@ function WritingItem({ w, lang, canHide }: { w: Item; lang: Lang; canHide: boole
   const [open, setOpen] = useState(false);
   const [hidden, setHidden] = useState(w.hidden_from_viewers);
   const fb = w.feedback as Feedback | null;
+  const teacher = (w.teacher_bands as Bands | null) ?? null;
   return (
     <article className="surface">
       <button type="button" className="flex min-h-14 w-full items-center gap-3 px-4 py-3 text-left" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
@@ -44,13 +49,34 @@ function WritingItem({ w, lang, canHide }: { w: Item; lang: Lang; canHide: boole
           </span>
           <span className="line-clamp-1 text-sm text-muted-foreground">{w.text}</span>
         </span>
-        {fb?.bands && <span className="shrink-0 text-sm tabular-nums">{fb.bands.gra?.toFixed(1)} / {fb.bands.lr?.toFixed(1)}</span>}
+        {(teacher ?? fb?.bands) && (
+          <span className="shrink-0 text-right text-sm tabular-nums">
+            {(teacher ?? fb!.bands).gra?.toFixed(1)} / {(teacher ?? fb!.bands).lr?.toFixed(1)}
+            <span className="block text-xs text-muted-foreground">{teacher ? "Teacher" : "AI estimate"}</span>
+          </span>
+        )}
         <ChevronDown className={cn("size-5 shrink-0 transition-transform", open && "rotate-180")} aria-hidden />
       </button>
-      {open && fb && (
+      {open && (fb || teacher) && (
         <div className="space-y-4 border-t p-4">
-          <BandEstimates bands={fb.bands} compact />
-          <FeedbackView text={w.text} feedback={fb} explainLang={lang} idPrefix={`rw-${w.id.slice(0, 6)}`} />
+          {teacher && (
+            <div className="rounded-2xl bg-brand-soft p-4">
+              <p className="text-sm font-semibold">{lang === "vi" ? "Điểm của giáo viên" : "Teacher's grade"}</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums">
+                {teacher.gra?.toFixed(1)} <span className="text-sm font-normal text-muted-foreground">GRA</span> · {teacher.lr?.toFixed(1)}{" "}
+                <span className="text-sm font-normal text-muted-foreground">LR</span>
+                {teacher.tr != null && <> · {teacher.tr.toFixed(1)} <span className="text-sm font-normal text-muted-foreground">TR</span></>}
+                {teacher.cc != null && <> · {teacher.cc.toFixed(1)} <span className="text-sm font-normal text-muted-foreground">CC</span></>}
+              </p>
+              {w.teacher_comment && <p className="mt-2 text-base whitespace-pre-wrap">{w.teacher_comment}</p>}
+            </div>
+          )}
+          {fb && <BandEstimates bands={fb.bands} compact />}
+          {fb ? (
+            <FeedbackView text={w.text} feedback={fb} explainLang={lang} idPrefix={`rw-${w.id.slice(0, 6)}`} />
+          ) : (
+            <p className="prose-reading max-w-none rounded-2xl border bg-background p-4 whitespace-pre-wrap">{w.text}</p>
+          )}
           {canHide && (
             <div className="flex items-center gap-2">
               <Switch

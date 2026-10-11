@@ -11,7 +11,7 @@ import { localDate } from "@/lib/time";
 import { aiCheckAnswer, aiCheckOwnSentence } from "@/lib/ai/services";
 import { checkGrammarExact, displayAnswer, type GrammarItem } from "./check";
 import { exerciseSeed, vocabPool } from "./hydrate";
-import { blockLength, completeBlock, grammarSequence, streakOk, totalMinutes } from "./progress";
+import { blockLength, completeBlock, grammarSequence, streakOk } from "./progress";
 import type { Progress, SessionBlock, SessionRow } from "./types";
 import { buildVocabExercise } from "./vocab-exercise";
 
@@ -41,7 +41,7 @@ export async function saveProgress(
     progress,
     xp: progress.xp,
     streak_ok: s.streak_ok || streakOk(s.plan, progress),
-    minutes: totalMinutes(progress),
+    // minutes/active_ms are maintained by the time heartbeat (add_session_time), not here.
     ...extra,
   };
   const { data, error } = await db
@@ -224,7 +224,7 @@ export async function submitAnswer(db: DB, viewer: Viewer, input: AnswerInput) {
       async () => db.from("cards").update(next).eq("id", entry.card_id),
       async () => db.from("review_logs").insert({
         card_id: entry.card_id, user_id: viewer.id, session_id: s.id, rating: grade,
-        exercise_type: entry.exercise, correct, duration_ms: durationMs,
+        exercise_type: entry.exercise, correct, duration_ms: durationMs, response: input.response.slice(0, 1000),
       }),
     );
     result.rating = grade;

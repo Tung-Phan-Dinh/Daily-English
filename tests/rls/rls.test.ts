@@ -194,3 +194,30 @@ describe("learner writes are limited to today's open session", () => {
     expect(await blocked(learner.from("weakness").insert({ user_id: learnerId, error_code: "ART", score: 0 }).select())).toBe(true);
   });
 });
+
+describe("active-time heartbeat", () => {
+  it("only the learner can add time to today's open session, capped per call, without bumping the lock version", async () => {
+    const before = await admin.from("sessions").select("active_ms, updated_at").eq("id", learnerSessionId).single();
+    const ok = await learner.rpc("add_session_time", { sid: learnerSessionId, ms: 30_000 });
+    expect(ok.error).toBeNull();
+    expect(Number(ok.data)).toBe(Number(before.data!.active_ms) + 30_000);
+
+    const capped = await learner.rpc("add_session_time", { sid: learnerSessionId, ms: 10_000_000 });
+    expect(Number(capped.data)).toBe(Number(before.data!.active_ms) + 30_000 + 65_000);
+
+    // Time updates must not change updated_at (the optimistic lock for answers).
+    const after = await admin.from("sessions").select("updated_at").eq("id", learnerSessionId).single();
+    expect(after.data!.updated_at).toBe(before.data!.updated_at);
+
+    // Viewers and other learners can't add time (no row matches → null).
+    expect((await viewer.rpc("add_session_time", { sid: learnerSessionId, ms: 30_000 })).data).toBeNull();
+    expect((await otherLearner.rpc("add_session_time", { sid: learnerSessionId, ms: 30_000 })).data).toBeNull();
+  });
+
+  it("viewers cannot write teacher grades directly", async () => {
+    const res = await viewer.from("writing_submissions").update({ teacher_bands: { gra: 9, lr: 9 } }).eq("user_id", learnerId).select();
+    expect(res.error !== null || (res.data ?? []).length === 0).toBe(true);
+    const own = await learner.from("writing_submissions").update({ teacher_bands: { gra: 9, lr: 9 } }).eq("user_id", learnerId).select();
+    expect(own.error !== null || (own.data ?? []).length === 0).toBe(true);
+  });
+});

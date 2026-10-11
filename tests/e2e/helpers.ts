@@ -76,3 +76,10 @@ export async function answerCurrent(page: Page) {
   await page.keyboard.press("Enter");
   return "typed";
 }
+
+/** The learner's day kind (04:00 boundary in Vietnam), so tests know what today's session contains. */
+export function learnerDayKind(): "weekday" | "saturday" | "sunday" {
+  const shifted = new Date(Date.now() - 4 * 3600_000);
+  const dow = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Ho_Chi_Minh", weekday: "short" }).format(shifted);
+  return dow === "Sun" ? "sunday" : dow === "Sat" ? "saturday" : "weekday";
+}

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, ChartLine, House, LayoutGrid, Settings, Shield, Users } from "lucide-react";
+import { BookOpen, CalendarDays, ChartLine, House, LayoutGrid, Settings, Shield, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const LEARNER = [
@@ -14,6 +14,7 @@ const LEARNER = [
 ];
 const ADMIN = [
   { href: "/admin", label: "Admin", icon: Shield },
+  { href: "/admin/sessions", label: "Sessions", icon: CalendarDays },
   { href: "/family", label: "Family", icon: Users },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
@@ -26,7 +27,9 @@ export function MobileTabBar({ role }: { role: "learner" | "viewer" | "admin" })
     <nav aria-label="Main" className="fixed inset-x-4 bottom-4 z-40 md:hidden">
       <ul className="mx-auto flex max-w-md items-center justify-between rounded-full bg-[#14161c] px-2 py-1.5 shadow-float ring-1 ring-white/10">
         {items.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href || pathname.startsWith(href + "/");
+          // Most specific match wins (/admin/sessions shouldn't also light up /admin).
+          const matches = (h: string) => pathname === h || pathname.startsWith(h + "/");
+          const active = matches(href) && !items.some((o) => o.href.length > href.length && o.href.startsWith(href) && matches(o.href));
           return (
             <li key={href} className="flex-1">
               <Link

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { requireViewer } from "@/lib/auth";
 import { env } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
@@ -62,7 +63,10 @@ export default async function AdminPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-semibold tracking-tight">Admin</h1>
-        <p className="mt-1 text-muted-foreground">Content approval, the learner&apos;s day and AI spend.</p>
+        <p className="mt-1 text-muted-foreground">
+          Content approval, the learner&apos;s day and AI spend.{" "}
+          <Link href="/admin/sessions" className="font-semibold text-brand underline-offset-4 hover:underline">See every session and grade his writing →</Link>
+        </p>
       </div>
 
       {/* Most-used first: the approval queue */}

@@ -10,6 +10,7 @@ import { BLOCK_META } from "@/lib/curriculum";
 import type { SessionBlock } from "@/lib/session/types";
 import { cn } from "@/lib/utils";
 import { post } from "./api";
+import { SessionClockSlot } from "./session-clock";
 import { CheckBlock, GrammarBlock, ReviewBlock } from "./blocks/practice-blocks";
 import { NewWordsBlock } from "./blocks/new-words-block";
 import { ReadingBlock } from "./blocks/reading-block";
@@ -207,6 +208,14 @@ export function SessionPlayer({ short, settings, name }: { short: boolean; setti
                 {s.short_day && " · short day"}
               </span>
             </p>
+            <SessionClockSlot
+              key={s.id}
+              sessionId={s.id}
+              initialMs={s.active_ms}
+              kind={s.kind}
+              shortDay={s.short_day}
+              running={current !== "finished"}
+            />
             {canShort && (
               <Button variant="outline" size="icon" className="shrink-0 border-transparent shadow-soft sm:w-auto sm:px-4" disabled={busy !== null} onClick={async () => { setBusy("short"); await action({ action: "short_day" }); setBusy(null); }} aria-label="Short day" title="Short day: finish after grammar">
                 <Timer aria-hidden /> <span className="hidden sm:inline">Short day</span>
@@ -235,7 +244,6 @@ export function SessionPlayer({ short, settings, name }: { short: boolean; setti
             </Button>
           </div>
           <SegmentBar blocks={blocks} progress={progress} payload={payload} />
-          <SoftTimer key={current} block={current} />
         </header>
 
         {notice && (
@@ -291,25 +299,5 @@ function SegmentBar({ blocks, progress, payload }: { blocks: SessionBlock[]; pro
         );
       })}
     </ol>
-  );
-}
-
-/** Soft timer: a thin bar toward the block's target time — never cuts him off. */
-function SoftTimer({ block }: { block: string | undefined }) {
-  const [elapsed, setElapsed] = useState(0);
-  useEffect(() => {
-    const start = Date.now();
-    const t = setInterval(() => setElapsed(Date.now() - start), 5000);
-    return () => clearInterval(t);
-  }, []);
-  if (!block || block === "finished" || block === "wrapup") return null;
-  const target = BLOCK_META[block as SessionBlock].minutes * 60_000;
-  const f = Math.min(1, elapsed / target);
-  return (
-    <div className="mx-auto max-w-5xl px-4 pb-2" aria-hidden>
-      <div className="h-0.5 overflow-hidden rounded-full bg-muted">
-        <div className="h-full bg-streak/70 transition-[width] duration-1000" style={{ width: `${f * 100}%` }} />
-      </div>
-    </div>
   );
 }

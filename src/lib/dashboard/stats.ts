@@ -37,7 +37,7 @@ export async function getDashboardData(db: DB, learnerId: string, tz: string) {
     db.from("attempts").select("grammar_point_id, correct, format, local_date").eq("user_id", learnerId).eq("item_kind", "grammar").order("created_at", { ascending: false }).limit(4000),
     db.from("v_reading_by_type").select("*").eq("user_id", learnerId),
     db.from("v_error_density_weekly").select("*").eq("user_id", learnerId).order("week_start"),
-    db.from("writing_submissions").select("id, local_date, text, word_count, status, band_gra, band_lr, band_tr, band_cc, feedback, hidden_from_viewers, created_at").eq("user_id", learnerId).order("created_at", { ascending: false }).limit(60),
+    db.from("writing_submissions").select("id, local_date, text, word_count, status, band_gra, band_lr, band_tr, band_cc, feedback, hidden_from_viewers, created_at, teacher_bands, teacher_comment, teacher_graded_at").eq("user_id", learnerId).order("created_at", { ascending: false }).limit(60),
     db.from("v_review_recall_weekly").select("*").eq("user_id", learnerId).order("week_start"),
     db.from("vocab_snapshots").select("local_date, learning, review, mastered").eq("user_id", learnerId).gte("local_date", since84).order("local_date"),
     db.from("weekly_summaries").select("week_start, body_en, body_vi").eq("learner_id", learnerId).order("week_start", { ascending: false }).limit(1),
@@ -122,7 +122,17 @@ export async function getDashboardData(db: DB, learnerId: string, tz: string) {
     : null;
 
   // Writing bands: 7-day rolling average (single AI scores are noisy) ---------------------
-  const graded = (writing ?? []).filter((w) => w.status === "graded" && w.band_gra !== null).slice().reverse();
+  // A teacher (admin) grade takes precedence over the AI estimate.
+  const bandOf = (w: { band_gra: unknown; band_lr: unknown; teacher_bands: unknown }, k: "gra" | "lr") => {
+    const t = (w.teacher_bands as { gra?: number; lr?: number } | null)?.[k];
+    return t ?? (k === "gra" ? w.band_gra : w.band_lr);
+  };
+  const graded = (writing ?? [])
+    .filter((w) => (w.status === "graded" && w.band_gra !== null) || w.teacher_bands)
+    .map((w) => ({ ...w, band_gra: bandOf(w, "gra"), band_lr: bandOf(w, "lr") }))
+    .filter((w) => w.band_gra !== null && w.band_gra !== undefined)
+    .slice()
+    .reverse();
   const writingBands = graded.map((w) => {
     const window = graded.filter((x) => x.local_date <= w.local_date && x.local_date > addDays(w.local_date, -7));
     const avg = (k: "band_gra" | "band_lr") => Math.round((window.reduce((s, x) => s + Number(x[k]), 0) / window.length) * 4) / 4;
@@ -194,7 +204,7 @@ export async function getDashboardData(db: DB, learnerId: string, tz: string) {
       readingSpeed: readingRows.map((r) => ({ date: r.date, wpm: r.wpm })),
       writingBands,
     },
-    recentWriting: (writing ?? []).filter((w) => w.status === "graded").slice(0, 5),
+    recentWriting: (writing ?? []).filter((w) => w.status === "graded" || w.teacher_bands).slice(0, 5),
     summary: summaries?.[0] ?? null,
     lookups: { perDay: lookupsPerDay, top: topLookups },
     insights,
